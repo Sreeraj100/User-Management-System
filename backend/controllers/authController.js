@@ -8,9 +8,7 @@ const generateToken = (id, isAdmin = false) => {
     });
 };
 
-// @desc    Register new user
-// @route   POST /api/auth/register
-// @access  Public
+
 const registerUser = async (req, res) => {
     const { name, email, password } = req.body;
 
@@ -45,9 +43,6 @@ const registerUser = async (req, res) => {
     }
 };
 
-// @desc    Authenticate a user
-// @route   POST /api/auth/login
-// @access  Public
 const loginUser = async (req, res) => {
     const { email, password } = req.body;
 
@@ -66,9 +61,7 @@ const loginUser = async (req, res) => {
     }
 };
 
-// @desc    Authenticate admin
-// @route   POST /api/auth/admin/login
-// @access  Public
+
 const loginAdmin = async (req, res) => {
     const { email, password } = req.body;
 

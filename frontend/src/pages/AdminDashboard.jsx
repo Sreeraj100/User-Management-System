@@ -97,9 +97,9 @@ function AdminDashboard() {
                     </tr>
                 </thead>
                 <tbody>
-                    {users.map((u) => (
+                    {users.map((u,i) => (
                         <tr key={u._id}>
-                            <td>{u._id}</td>
+                            <td>{i}</td>
                             <td>
                                 {editingId === u._id ? (
                                     <input

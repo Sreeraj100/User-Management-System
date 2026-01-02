@@ -1,16 +1,12 @@
 const User = require('../models/User');
 
-// @desc    Get user data
-// @route   GET /api/users/me
-// @access  Private
+
 const getMe = async (req, res) => {
     const user = await User.findById(req.user.id);
     res.status(200).json(user);
 };
 
-// @desc    Update user profile
-// @route   PUT /api/users/profile
-// @access  Private
+
 const updateProfile = async (req, res) => {
     const user = await User.findById(req.user.id);
 
