@@ -12,131 +12,141 @@ function AdminDashboard() {
     const [users, setUsers] = useState([]);
     const [search, setSearch] = useState('');
     const [editingId, setEditingId] = useState(null);
-    const [editFormData, setEditFormData] = useState({ name: '', email: '' });
+    const [newUser, setNewUser] = useState({ name: '', email: '', password: '' });
+    const [isAdding, setIsAdding] = useState(false);
 
-    useEffect(() => {
-        fetchUsers();
-    }, [user]);
+    // ... (existing functions)
 
-    const fetchUsers = async (searchTerm = '') => {
-        try {
-            const config = {
-                headers: { Authorization: `Bearer ${user.token}` }
-            };
-            const url = searchTerm ? `http://localhost:5000/api/admin/users?search=${searchTerm}` : 'http://localhost:5000/api/admin/users';
-            const res = await axios.get(url, config);
-            setUsers(res.data);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleSearch = (e) => {
+    const handleAddUser = async (e) => {
         e.preventDefault();
-        fetchUsers(search);
-    };
-
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this user?')) {
-            try {
-                const config = { headers: { Authorization: `Bearer ${user.token}` } };
-                await axios.delete(`http://localhost:5000/api/admin/users/${id}`, config);
-                fetchUsers(search);
-            } catch (error) {
-                console.error(error);
-            }
-        }
-    };
-
-    const handleEdit = (user) => {
-        setEditingId(user._id);
-        setEditFormData({ name: user.name, email: user.email });
-    };
-
-    const handleCancelEdit = () => {
-        setEditingId(null);
-    };
-
-    const handleSaveEdit = async (id) => {
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
-            await axios.put(`http://localhost:5000/api/admin/users/${id}`, editFormData, config);
-            setEditingId(null);
-            fetchUsers(search);
+            await axios.post('http://localhost:5000/api/admin/users', newUser, config);
+            setNewUser({ name: '', email: '', password: '' });
+            setIsAdding(false);
+            fetchUsers();
+            alert('User added successfully');
         } catch (error) {
             console.error(error);
-            alert('Error updating user');
+            alert(error.response?.data?.message || 'Error adding user');
         }
     };
 
     return (
-        <div className="admin-container">
-            <header className="admin-header">
+        <div className="container mt-20">
+            <header className="header">
                 <h1>Admin Dashboard</h1>
                 <div className="header-actions">
                     <form onSubmit={handleSearch} className="search-form">
                         <input
                             type="text"
+                            className="form-control search-input"
                             placeholder="Search users..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
-                        <button type="submit" className="btn btn-search">Search</button>
+                        <button type="submit" className="btn">Search</button>
                     </form>
-                    <button className="btn btn-logout" onClick={() => { dispatch(logout()); navigate('/admin'); }}>Logout</button>
+                    <button className="btn" onClick={() => setIsAdding(!isAdding)}>
+                        {isAdding ? 'Close' : 'Add User'}
+                    </button>
+                    <button className="btn btn-reverse" onClick={() => { dispatch(logout()); navigate('/admin'); }}>Logout</button>
                 </div>
             </header>
 
-            <table className="users-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {users.map((u,i) => (
-                        <tr key={u._id}>
-                            <td>{i}</td>
-                            <td>
-                                {editingId === u._id ? (
-                                    <input
-                                        value={editFormData.name}
-                                        onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                                    />
-                                ) : (
-                                    u.name
-                                )}
-                            </td>
-                            <td>
-                                {editingId === u._id ? (
-                                    <input
-                                        value={editFormData.email}
-                                        onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                                    />
-                                ) : (
-                                    u.email
-                                )}
-                            </td>
-                            <td>
-                                {editingId === u._id ? (
-                                    <>
-                                        <button className="btn btn-save-sm" onClick={() => handleSaveEdit(u._id)}>Save</button>
-                                        <button className="btn btn-cancel-sm" onClick={handleCancelEdit}>Cancel</button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button className="btn btn-edit-sm" onClick={() => handleEdit(u)}>Edit</button>
-                                        <button className="btn btn-delete-sm" onClick={() => handleDelete(u._id)}>Delete</button>
-                                    </>
-                                )}
-                            </td>
+            {isAdding && (
+                <div className="card mb-20">
+                    <h2>Add New User</h2>
+                    <form onSubmit={handleAddUser}>
+                        <div className="form-group">
+                            <label>Name</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                value={newUser.name}
+                                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Email</label>
+                            <input
+                                type="email"
+                                className="form-control"
+                                value={newUser.email}
+                                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Password</label>
+                            <input
+                                type="password"
+                                className="form-control"
+                                value={newUser.password}
+                                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <button type="submit" className="btn btn-block">Create User</button>
+                    </form>
+                </div>
+            )}
+
+            <div className="table-container">
+                <table className="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Actions</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {users.map((u, i) => (
+                            <tr key={u._id}>
+                                <td>{i + 1}</td>
+                                <td>
+                                    {editingId === u._id ? (
+                                        <input
+                                            className="form-control"
+                                            value={editFormData.name}
+                                            onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                                        />
+                                    ) : (
+                                        u.name
+                                    )}
+                                </td>
+                                <td>
+                                    {editingId === u._id ? (
+                                        <input
+                                            className="form-control"
+                                            value={editFormData.email}
+                                            onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                                        />
+                                    ) : (
+                                        u.email
+                                    )}
+                                </td>
+                                <td>
+                                    {editingId === u._id ? (
+                                        <div className="btn-group">
+                                            <button className="btn btn-small" onClick={() => handleSaveEdit(u._id)}>Save</button>
+                                            <button className="btn btn-reverse btn-small" onClick={handleCancelEdit}>Cancel</button>
+                                        </div>
+                                    ) : (
+                                        <div className="btn-group">
+                                            <button className="btn btn-small" onClick={() => handleEdit(u)}>Edit</button>
+                                            <button className="btn btn-danger btn-small" onClick={() => handleDelete(u._id)}>Delete</button>
+                                        </div>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

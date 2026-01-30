@@ -1,16 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import { loginAdmin, reset } from '../features/auth/authSlice';
 
 function AdminLogin() {
-    const [localError, setLocalError] = useState(null);
-    const [formData, setFormData] = useState({
-        email: '',
-        password: '',
-    });
-
-    const { email, password } = formData;
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm();
 
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -20,74 +19,52 @@ function AdminLogin() {
     );
 
     useEffect(() => {
-        if (isError) {
-            // Error handled in UI
-        }
-
         if (isSuccess && user && user.isAdmin) {
             navigate('/admin/dashboard');
         }
-    }, [user, isError, isSuccess, message, navigate, dispatch]);
+    }, [user, isSuccess]);
 
     useEffect(() => {
         return () => {
             dispatch(reset());
-        }
+        };
     }, [dispatch]);
 
-    const onChange = (e) => {
-        setFormData((prevState) => ({
-            ...prevState,
-            [e.target.name]: e.target.value,
-        }));
-    };
-
-    const onSubmit = (e) => {
-        e.preventDefault();
-        setLocalError(null);
-
-        if (!email || !password) {
-            setLocalError('Please fill in all fields');
-            return;
-        }
-
-        const userData = {
-            email,
-            password,
-        };
-
-        dispatch(loginAdmin(userData));
+    const onSubmit = (data) => {
+        dispatch(loginAdmin(data));
     };
 
     return (
         <div className='form-container'>
             <section className='heading'>
                 <h1>Admin Login</h1>
+                <p>Sign in to manage users</p>
             </section>
 
             <section className='form'>
-                <form onSubmit={onSubmit}>
+                <form onSubmit={handleSubmit(onSubmit)}>
                     <div className='form-group'>
+                        <label htmlFor='email'>Email</label>
                         <input
                             type='email'
-                            className='form-control'
+                            className={errors.email ? 'form-control input-error' : 'form-control'}
                             id='email'
-                            name='email'
-                            value={email}
                             placeholder='Enter admin email'
-                            onChange={onChange}
+                            {...register('email', { required: 'Email is required' })}
                         />
+                        {errors.email && <p className='error-text'>{errors.email.message}</p>}
                     </div>
+
                     <div className='form-group'>
+                        <label htmlFor='password'>Password</label>
                         <input
                             type='password'
-                            className='form-control'
+                            className={errors.password ? 'form-control input-error' : 'form-control'}
                             id='password'
-                            name='password'
-                            value={password}
                             placeholder='Enter admin password'
-                            onChange={onChange}
+                            {...register('password', { required: 'Password is required' })}
                         />
+                        {errors.password && <p className='error-text'>{errors.password.message}</p>}
                     </div>
 
                     <div className='form-group'>
@@ -95,9 +72,9 @@ function AdminLogin() {
                             {isLoading ? 'Logging in...' : 'Login as Admin'}
                         </button>
                     </div>
-                    {localError && <div className='alert-error'>{localError}</div>}
-                    {isError && !localError && <div className='alert-error'>{message}</div>}
                 </form>
+
+                {isError && <div className='alert-error'>{message}</div>}
             </section>
         </div>
     );

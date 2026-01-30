@@ -11,8 +11,12 @@ const updateProfile = async (req, res) => {
     const user = await User.findById(req.user.id);
 
     if (user) {
-        user.name = req.body.name || user.name;
-        user.email = req.body.email || user.email;
+        if (req.body.name && req.body.name.trim() !== '') {
+            user.name = req.body.name;
+        }
+        if (req.body.email && req.body.email.trim() !== '') {
+            user.email = req.body.email;
+        }
 
         if (req.file) {
             user.profileImage = req.file.path;

@@ -1,0 +1,96 @@
+# BACKEND DEEP DIVE EXPLANATION
+# Folder: /backend
+
+This document explains exactly how the Backend (Server) works. Imagine this as a high-security office building that processes user requests.
+
+---
+
+## 1. THE RECEPTIONIST: `server.js`
+This file is the main entrance. When a request comes in (like "I want to login"):
+1.  **Connect Database**: It first ensures the connection to MongoDB is alive.
+2.  **Parse JSON**: It has a tool (`express.json()`) that translates incoming data into a readable format.
+3.  **CORS**: It allows the Frontend (running on port 5173) to talk to this Backend (running on port 5000). Usually, browsers block this, but CORS allows it.
+4.  **Route Delegation**: The receptionist looks at the request:
+    *   "Is this about Auth?" -> Send to Room `authRoutes`.
+    *   "Is this about Users?" -> Send to Room `userRoutes`.
+    *   "Is this about Admin?" -> Send to Room `adminRoutes`.
+
+---
+
+## 2. THE PATHWAYS: Routes (`/routes/*.js`)
+These files are just simple pointers.
+*   **`authRoutes.js`**:
+    *   If request is `POST /register`, it points to `registerUser` function.
+    *   If request is `POST /login`, it points to `loginUser` function.
+*   **`userRoutes.js`**:
+    *   Points `/profile` to update functions.
+    *   **Important**: It adds `protect` middleware to these paths (see Section 3).
+
+---
+
+## 3. THE SECURITY GUARD: Middleware (`authMiddleware.js`)
+This is the most critical part of the system.
+Before a User or Admin can do anything important, this code runs.
+
+### function `protect(req, res, next)`
+1.  **Check for Badge**: It looks at the request header. "Do you have a Token starting with 'Bearer'?"
+2.  **Verify Badge**: It uses the secret key (`JWT_SECRET`) to decode the token.
+    *   If fake/expired -> Throw Error "Not Authorized".
+3.  **Identify Person**: It reads the `id` inside the token. It asks MongoDB: "Does this user still exist?"
+    *   If the user was deleted 5 seconds ago -> Throw Error "User not found".
+4.  **Allow Entry**: If everything is good, it attaches the user info to the request (`req.user = user`) and says `next()` (proceed to the controller).
+
+---
+
+## 4. THE WORKERS: Controllers
+This is where the actual work happens.
+
+### Scenario A: Registering a User (`authController.js`)
+1.  **Receive**: Gets Name, Email, Password.
+2.  **Validation**:
+    *   "Is the email empty?" -> Error.
+    *   "Is there only whitespace?" -> Error.
+    *   "Does this email already exist in DB?" -> Error.
+3.  **Hashing**: We **NEVER** save plain passwords.
+    *   We use `bcrypt` to scramble the password (e.g., "password123" becomes `asd7f6a8sd76f8a...`).
+4.  **Save**: We run `User.create(...)` to save to MongoDB.
+5.  **Token**: We generate a fresh JWT Token immediately so the user is logged in instantly.
+6.  **Reply**: Send back `{ id, name, email, token }`.
+
+### Scenario B: Updating Profile (`userController.js`)
+This function only runs IF the 'Security Guard' (middleware) let us through.
+1.  **Find**: It knows who the user is because the security guard attached `req.user`.
+2.  **Check Input**:
+    *   "Did they send a new name?" -> If yes, and it's not empty, update `user.name`.
+    *   "Did they upload a file?" -> If yes, update `user.profileImage` path.
+3.  **Save**: Runs `user.save()`.
+4.  **Reply**: Sends back the updated profile data.
+
+### Scenario C: Admin Features (`adminController.js`)
+1.  **`getUsers`**:
+    *   It checks for a search keyword (`req.query.search`).
+    *   If a keyword exists, it tells MongoDB: "Find users where Name OR Email matches this pattern."
+    *   Returns the list.
+2.  **`deleteUser`**:
+    *   Finds user by ID.
+    *   Runs `deleteOne()`.
+    *   Returns "User removed".
+
+---
+
+## 5. THE VAULT: Database Models (`models/User.js`)
+This is the blueprint.
+*   It tells the database to be strict.
+*   `required: true`: You cannot save a user without this field.
+*   `unique: true`: No two users can have the same email.
+
+---
+
+## SUMMARY
+The Backend flow is also a cycle:
+1.  **Request Arrives**: `server.js` catches it.
+2.  **Routing**: Sent to the correct folder (`routes`).
+3.  **Security**: Middleware checks your ID card (Token).
+4.  **Controller**: The logic runs (Validation -> Database -> Logic).
+5.  **Database**: MongoDB saves or retrieves data.
+6.  **Response**: The result is sent back to the Frontend.

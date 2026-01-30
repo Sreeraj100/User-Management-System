@@ -12,7 +12,7 @@ const generateToken = (id, isAdmin = false) => {
 const registerUser = async (req, res) => {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !name.trim() || !email.trim() || !password.trim()) {
         return res.status(400).json({ message: 'Please add all fields' });
     }
 

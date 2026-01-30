@@ -1,17 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { register, reset } from '../features/auth/authSlice';
+import { useForm } from 'react-hook-form';
+import { register as registerUser, reset } from '../features/auth/authSlice'; // Renamed register to avoid conflict
 
 function Register() {
-    const [localError, setLocalError] = useState(null);
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: '',
-    });
-
-    const { name, email, password } = formData;
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm();
 
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -21,99 +19,92 @@ function Register() {
     );
 
     useEffect(() => {
-        if (isError) {
-            // Error handled in UI
-        }
-
         if (isSuccess || user) {
             navigate('/dashboard');
         }
-    }, [user, isError, isSuccess, message, navigate, dispatch]);
+    }, [user, isSuccess]);
 
     useEffect(() => {
         return () => {
             dispatch(reset());
-        }
+        };
     }, [dispatch]);
 
-    const onChange = (e) => {
-        setFormData((prevState) => ({
-            ...prevState,
-            [e.target.name]: e.target.value,
-        }));
-    };
-
-    const onSubmit = (e) => {
-        e.preventDefault();
-        setLocalError(null);
-
-        if (!name || !email || !password) {
-            setLocalError('Please fill in all fields');
-            return;
-        }
-
-        const userData = {
-            name,
-            email,
-            password,
-        };
-
-        dispatch(register(userData));
+    const onSubmit = (data) => {
+        dispatch(registerUser(data));
     };
 
     return (
         <div className='form-container'>
             <section className='heading'>
-                <h1>Register</h1>
+                <h1>Create an Account</h1>
+                <p>Register to get started</p>
             </section>
 
             <section className='form'>
-                <form onSubmit={onSubmit}>
+                <form onSubmit={handleSubmit(onSubmit)}>
                     <div className='form-group'>
+                        <label htmlFor='name'>Name</label>
                         <input
                             type='text'
-                            className='form-control'
+                            className={errors.name ? 'form-control input-error' : 'form-control'}
                             id='name'
-                            name='name'
-                            value={name}
                             placeholder='Enter your name'
-                            onChange={onChange}
+                            {...register('name', { required: 'Name is required' })}
                         />
+                        {errors.name && <p className='error-text'>{errors.name.message}</p>}
                     </div>
+
                     <div className='form-group'>
+                        <label htmlFor='email'>Email</label>
                         <input
                             type='email'
-                            className='form-control'
+                            className={errors.email ? 'form-control input-error' : 'form-control'}
                             id='email'
-                            name='email'
-                            value={email}
                             placeholder='Enter your email'
-                            onChange={onChange}
+                            {...register('email', {
+                                required: 'Email is required',
+                                pattern: {
+                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                    message: 'Invalid email address',
+                                },
+                            })}
                         />
+                        {errors.email && <p className='error-text'>{errors.email.message}</p>}
                     </div>
+
                     <div className='form-group'>
+                        <label htmlFor='password'>Password</label>
                         <input
                             type='password'
-                            className='form-control'
+                            className={errors.password ? 'form-control input-error' : 'form-control'}
                             id='password'
-                            name='password'
-                            value={password}
                             placeholder='Enter password'
-                            onChange={onChange}
+                            {...register('password', {
+                                required: 'Password is required',
+                                minLength: {
+                                    value: 6,
+                                    message: 'Password must be at least 6 characters',
+                                },
+                            })}
                         />
+                        {errors.password && <p className='error-text'>{errors.password.message}</p>}
                     </div>
 
                     <div className='form-group'>
                         <button type='submit' className='btn btn-block' disabled={isLoading}>
-                            {isLoading ? 'Creating Account...' : 'Submit'}
+                            {isLoading ? 'Creating Account...' : 'Register'}
                         </button>
                     </div>
-                    {localError && <div className='alert-error'>{localError}</div>}
-                    {isError && !localError && <div className='alert-error'>{message}</div>}
                 </form>
-                <p>
-                    Already have an account? <Link to='/login'>Login</Link>
-                </p>
+
+                {isError && <div className='alert-error'>{message}</div>}
+
+                <div className='form-footer'>
+                    <p>
+                        Already have an account? <Link to='/login'>Login</Link>
+                    </p>
+                </div>
             </section>
         </div>
     );

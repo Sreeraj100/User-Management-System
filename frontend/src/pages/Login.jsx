@@ -1,16 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import { login, reset } from '../features/auth/authSlice';
 
 function Login() {
-    const [localError, setLocalError] = useState(null);
-    const [formData, setFormData] = useState({
-        email: '',
-        password: '',
-    });
-
-    const { email, password } = formData;
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm();
 
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -20,10 +19,6 @@ function Login() {
     );
 
     useEffect(() => {
-        if (isError) {
-            // Error handled in UI
-        }
-
         if (isSuccess || user) {
             if (user && user.isAdmin) {
                 navigate('/admin/dashboard');
@@ -31,82 +26,65 @@ function Login() {
                 navigate('/dashboard');
             }
         }
-    }, [user, isError, isSuccess, message, navigate, dispatch]);
+    }, [user, isSuccess]);
 
-    // Clear state on unmount
     useEffect(() => {
         return () => {
             dispatch(reset());
-        }
+        };
     }, [dispatch]);
 
-    const onChange = (e) => {
-        setFormData((prevState) => ({
-            ...prevState,
-            [e.target.name]: e.target.value,
-        }));
-    };
-
-    const onSubmit = (e) => {
-        e.preventDefault();
-        setLocalError(null);
-
-        if (!email || !password) {
-            setLocalError('Please fill in all fields');
-            return;
-        }
-
-        const userData = {
-            email,
-            password,
-        };
-
-        dispatch(login(userData));
+    const onSubmit = (data) => {
+        dispatch(login(data));
     };
 
     return (
         <div className='form-container'>
             <section className='heading'>
-                <h1>Login</h1>
-
+                <h1>Welcome Back</h1>
+                <p>Login to your account</p>
             </section>
 
             <section className='form'>
-                <form onSubmit={onSubmit}>
+                <form onSubmit={handleSubmit(onSubmit)}>
                     <div className='form-group'>
+                        <label htmlFor='email'>Email</label>
                         <input
                             type='email'
-                            className='form-control'
+                            className={errors.email ? 'form-control input-error' : 'form-control'}
                             id='email'
-                            name='email'
-                            value={email}
                             placeholder='Enter your email'
-                            onChange={onChange}
+                            {...register('email', { required: 'Email is required' })}
                         />
+                        {errors.email && <p className='error-text'>{errors.email.message}</p>}
                     </div>
+
                     <div className='form-group'>
+                        <label htmlFor='password'>Password</label>
                         <input
                             type='password'
-                            className='form-control'
+                            className={errors.password ? 'form-control input-error' : 'form-control'}
                             id='password'
-                            name='password'
-                            value={password}
                             placeholder='Enter your password'
-                            onChange={onChange}
+                            {...register('password', { required: 'Password is required' })}
                         />
+                        {errors.password && <p className='error-text'>{errors.password.message}</p>}
                     </div>
 
                     <div className='form-group'>
                         <button type='submit' className='btn btn-block' disabled={isLoading}>
-                            {isLoading ? 'Logging in...' : 'Submit'}
+                            {isLoading ? 'Logging in...' : 'Login'}
                         </button>
                     </div>
-                    {localError && <div className='alert-error'>{localError}</div>}
-                    {isError && !localError && <div className='alert-error'>{message}</div>}
                 </form>
-                <p>
-                    Don't have an account? <Link to='/register'>Register</Link>
-                </p>
+
+                {isError && <div className='alert-error'>{message}</div>}
+
+                <div className='form-footer'>
+                    <p>
+                        Don't have an account? <Link to='/register'>Register</Link>
+                    </p>
+                </div>
             </section>
         </div>
     );
