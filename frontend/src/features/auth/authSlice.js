@@ -3,9 +3,11 @@ import authService from './authService';
 
 // Get user from local storage
 const user = JSON.parse(localStorage.getItem('user'));
+const admin = JSON.parse(localStorage.getItem('admin'));
 
 const initialState = {
     user: user ? user : null,
+    admin: admin ? admin : null,
     isError: false,
     isSuccess: false,
     isLoading: false,
@@ -45,6 +47,11 @@ export const loginAdmin = createAsyncThunk('auth/loginAdmin', async (user, thunk
 // Logout user
 export const logout = createAsyncThunk('auth/logout', async () => {
     await authService.logout();
+});
+
+// Logout admin
+export const logoutAdmin = createAsyncThunk('auth/logoutAdmin', async () => {
+    await authService.logoutAdmin();
 });
 
 export const authSlice = createSlice({
@@ -101,17 +108,21 @@ export const authSlice = createSlice({
             .addCase(loginAdmin.fulfilled, (state, action) => {
                 state.isLoading = false;
                 state.isSuccess = true;
-                state.user = action.payload;
+                state.admin = action.payload;
             })
             .addCase(loginAdmin.rejected, (state, action) => {
                 state.isLoading = false;
                 state.isError = true;
                 state.message = action.payload;
-                state.user = null;
+                state.admin = null;
             })
-            // Logout
+            // Logout User
             .addCase(logout.fulfilled, (state) => {
                 state.user = null;
+            })
+            // Logout Admin
+            .addCase(logoutAdmin.fulfilled, (state) => {
+                state.admin = null;
             });
     },
 });

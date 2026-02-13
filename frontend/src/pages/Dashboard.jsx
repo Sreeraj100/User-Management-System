@@ -59,6 +59,15 @@ function Dashboard() {
     const handleSave = async (e) => {
         e.preventDefault();
 
+        if (!profile.name.trim() || !profile.email.trim()) {
+            return alert('Name and Email are required');
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(profile.email)) {
+            return alert('Please enter a valid email address');
+        }
+
         const formData = new FormData();
         formData.append('name', profile.name);
         formData.append('email', profile.email);

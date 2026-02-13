@@ -29,9 +29,8 @@ const loginAdmin = async (userData) => {
     const response = await axios.post(API_URL + 'admin/login', userData);
 
     if (response.data) {
-        // Add isAdmin flag to store consistent object
         const adminUser = { ...response.data, isAdmin: true };
-        localStorage.setItem('user', JSON.stringify(adminUser));
+        localStorage.setItem('admin', JSON.stringify(adminUser));
         return adminUser;
     }
 };
@@ -41,11 +40,17 @@ const logout = () => {
     localStorage.removeItem('user');
 };
 
+// Logout admin
+const logoutAdmin = () => {
+    localStorage.removeItem('admin');
+};
+
 const authService = {
     register,
     login,
     loginAdmin,
     logout,
+    logoutAdmin,
 };
 
 export default authService;

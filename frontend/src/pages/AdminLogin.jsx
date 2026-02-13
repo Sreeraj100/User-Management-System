@@ -14,15 +14,15 @@ function AdminLogin() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
 
-    const { user, isLoading, isError, isSuccess, message } = useSelector(
+    const { admin, isLoading, isError, isSuccess, message } = useSelector(
         (state) => state.auth
     );
 
     useEffect(() => {
-        if (isSuccess && user && user.isAdmin) {
+        if (admin) {
             navigate('/admin/dashboard');
         }
-    }, [user, isSuccess]);
+    }, [admin, navigate]);
 
     useEffect(() => {
         return () => {

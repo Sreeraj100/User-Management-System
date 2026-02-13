@@ -1,26 +1,108 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '../features/auth/authSlice';
+import { logoutAdmin } from '../features/auth/authSlice';
 import axios from 'axios';
 
 function AdminDashboard() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const { user } = useSelector((state) => state.auth);
+    const { admin } = useSelector((state) => state.auth);
 
     const [users, setUsers] = useState([]);
     const [search, setSearch] = useState('');
     const [editingId, setEditingId] = useState(null);
+    const [editFormData, setEditFormData] = useState({ name: '', email: '' });
     const [newUser, setNewUser] = useState({ name: '', email: '', password: '' });
     const [isAdding, setIsAdding] = useState(false);
 
-    // ... (existing functions)
+    // Fetch users function
+    const fetchUsers = async () => {
+        try {
+            const config = {
+                headers: { Authorization: `Bearer ${admin.token}` }
+            };
+            const url = search ? `http://localhost:5000/api/admin/users?search=${search}` : 'http://localhost:5000/api/admin/users';
+            const res = await axios.get(url, config);
+            setUsers(res.data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    // Initial fetch
+    useEffect(() => {
+        if (!admin) {
+            navigate('/admin');
+        } else {
+            fetchUsers();
+        }
+    }, [admin, search, navigate]);
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        fetchUsers();
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm('Are you sure you want to delete this user?')) {
+            try {
+                const config = { headers: { Authorization: `Bearer ${admin.token}` } };
+                await axios.delete(`http://localhost:5000/api/admin/users/${id}`, config);
+                fetchUsers();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    };
+
+    const handleEdit = (user) => {
+        setEditingId(user._id);
+        setEditFormData({ name: user.name, email: user.email });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+    };
+
+    const handleSaveEdit = async (id) => {
+        // Basic Validation
+        if (!editFormData.name.trim() || !editFormData.email.trim()) {
+            return alert('Name and Email are required');
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(editFormData.email)) {
+            return alert('Please enter a valid email address');
+        }
+        try {
+            const config = { headers: { Authorization: `Bearer ${admin.token}` } };
+            await axios.put(`http://localhost:5000/api/admin/users/${id}`, editFormData, config);
+            setEditingId(null);
+            fetchUsers();
+        } catch (error) {
+            console.error(error);
+            alert('Error updating user');
+        }
+    };
 
     const handleAddUser = async (e) => {
         e.preventDefault();
+
+        // Basic Validation
+        if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim()) {
+            return alert('Please fill in all fields');
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newUser.email)) {
+            return alert('Please enter a valid email address');
+        }
+
+        if (newUser.password.length < 6) {
+            return alert('Password must be at least 6 characters');
+        }
         try {
-            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            const config = { headers: { Authorization: `Bearer ${admin.token}` } };
             await axios.post('http://localhost:5000/api/admin/users', newUser, config);
             setNewUser({ name: '', email: '', password: '' });
             setIsAdding(false);
@@ -50,7 +132,7 @@ function AdminDashboard() {
                     <button className="btn" onClick={() => setIsAdding(!isAdding)}>
                         {isAdding ? 'Close' : 'Add User'}
                     </button>
-                    <button className="btn btn-reverse" onClick={() => { dispatch(logout()); navigate('/admin'); }}>Logout</button>
+                    <button className="btn btn-reverse" onClick={() => { dispatch(logoutAdmin()); navigate('/admin'); }}>Logout</button>
                 </div>
             </header>
 

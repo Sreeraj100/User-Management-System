@@ -20,13 +20,9 @@ function Login() {
 
     useEffect(() => {
         if (isSuccess || user) {
-            if (user && user.isAdmin) {
-                navigate('/admin/dashboard');
-            } else if (user) {
-                navigate('/dashboard');
-            }
+            navigate('/dashboard');
         }
-    }, [user, isSuccess]);
+    }, [user, isSuccess, navigate]);
 
     useEffect(() => {
         return () => {
