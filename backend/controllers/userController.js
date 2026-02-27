@@ -15,6 +15,10 @@ const updateProfile = async (req, res) => {
             user.name = req.body.name;
         }
         if (req.body.email && req.body.email.trim() !== '') {
+            const emailExists = await User.findOne({ email: req.body.email });
+            if (emailExists && emailExists._id.toString() !== user._id.toString()) {
+                return res.status(400).json({ message: 'Email already exists' });
+            }
             user.email = req.body.email;
         }
 

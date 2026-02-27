@@ -147,7 +147,6 @@ function AdminDashboard() {
                                 className="form-control"
                                 value={newUser.name}
                                 onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                                required
                             />
                         </div>
                         <div className="form-group">
@@ -157,7 +156,6 @@ function AdminDashboard() {
                                 className="form-control"
                                 value={newUser.email}
                                 onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                                required
                             />
                         </div>
                         <div className="form-group">
@@ -167,7 +165,6 @@ function AdminDashboard() {
                                 className="form-control"
                                 value={newUser.password}
                                 onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                                required
                             />
                         </div>
                         <button type="submit" className="btn btn-block">Create User</button>
