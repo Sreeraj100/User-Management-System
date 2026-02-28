@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout, updateUser } from '../features/auth/authSlice';
 import axios from 'axios';
+import { useForm } from 'react-hook-form';
 
 function Dashboard() {
     const navigate = useNavigate();
@@ -16,6 +17,13 @@ function Dashboard() {
         profileImage: ''
     });
     const [file, setFile] = useState(null);
+
+    const {
+        register,
+        handleSubmit,
+        setValue,
+        formState: { errors },
+    } = useForm();
 
     useEffect(() => {
         if (!user) {
@@ -49,6 +57,8 @@ function Dashboard() {
 
     const handleEdit = () => {
         setIsEditing(true);
+        setValue('name', profile.name);
+        setValue('email', profile.email);
     };
 
     const handleCancel = () => {
@@ -56,21 +66,10 @@ function Dashboard() {
         setFile(null);
     };
 
-    const handleSave = async (e) => {
-        e.preventDefault();
-
-        if (!profile.name.trim() || !profile.email.trim()) {
-            return alert('Name and Email are required');
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(profile.email)) {
-            return alert('Please enter a valid email address');
-        }
-
+    const onSubmit = async (data) => {
         const formData = new FormData();
-        formData.append('name', profile.name);
-        formData.append('email', profile.email);
+        formData.append('name', data.name);
+        formData.append('email', data.email);
         if (file) {
             formData.append('profileImage', file);
         }
@@ -94,7 +93,6 @@ function Dashboard() {
             setFile(null);
         } catch (error) {
             console.error(error);
-            alert('Error updating profile');
         }
     };
 
@@ -123,24 +121,30 @@ function Dashboard() {
                         <button className="btn" onClick={handleEdit}>Edit Profile</button>
                     </div>
                 ) : (
-                    <form className="edit-form" onSubmit={handleSave}>
+                    <form className="edit-form" onSubmit={handleSubmit(onSubmit)}>
                         <div className="form-group">
                             <label>Name</label>
                             <input
                                 type="text"
-                                className="form-control"
-                                value={profile.name}
-                                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                                className={errors.name ? 'form-control input-error' : 'form-control'}
+                                {...register('name', { required: 'Name is required' })}
                             />
+                            {errors.name && <p className='error-text'>{errors.name.message}</p>}
                         </div>
                         <div className="form-group">
                             <label>Email</label>
                             <input
                                 type="email"
-                                className="form-control"
-                                value={profile.email}
-                                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                                className={errors.email ? 'form-control input-error' : 'form-control'}
+                                {...register('email', {
+                                    required: 'Email is required',
+                                    pattern: {
+                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                        message: 'Invalid email address',
+                                    },
+                                })}
                             />
+                            {errors.email && <p className='error-text'>{errors.email.message}</p>}
                         </div>
                         <div className="form-group">
                             <label>Profile Image</label>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutAdmin } from '../features/auth/authSlice';
 import axios from 'axios';
+import { useForm } from 'react-hook-form';
 
 function AdminDashboard() {
     const navigate = useNavigate();
@@ -12,9 +13,21 @@ function AdminDashboard() {
     const [users, setUsers] = useState([]);
     const [search, setSearch] = useState('');
     const [editingId, setEditingId] = useState(null);
-    const [editFormData, setEditFormData] = useState({ name: '', email: '' });
-    const [newUser, setNewUser] = useState({ name: '', email: '', password: '' });
     const [isAdding, setIsAdding] = useState(false);
+
+    const {
+        register,
+        handleSubmit,
+        reset: resetAddUserForm,
+        formState: { errors },
+    } = useForm();
+
+    const {
+        register: registerEdit,
+        handleSubmit: handleEditSubmit,
+        reset: resetEditForm,
+        formState: { errors: editErrors },
+    } = useForm();
 
     // Fetch users function
     const fetchUsers = async () => {
@@ -58,25 +71,17 @@ function AdminDashboard() {
 
     const handleEdit = (user) => {
         setEditingId(user._id);
-        setEditFormData({ name: user.name, email: user.email });
+        resetEditForm({ name: user.name, email: user.email });
     };
 
     const handleCancelEdit = () => {
         setEditingId(null);
     };
 
-    const handleSaveEdit = async (id) => {
-        // Basic Validation
-        if (!editFormData.name.trim() || !editFormData.email.trim()) {
-            return alert('Name and Email are required');
-        }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(editFormData.email)) {
-            return alert('Please enter a valid email address');
-        }
+    const onSubmitEditUser = async (data) => {
         try {
             const config = { headers: { Authorization: `Bearer ${admin.token}` } };
-            await axios.put(`http://localhost:5000/api/admin/users/${id}`, editFormData, config);
+            await axios.put(`http://localhost:5000/api/admin/users/${editingId}`, data, config);
             setEditingId(null);
             fetchUsers();
         } catch (error) {
@@ -85,26 +90,11 @@ function AdminDashboard() {
         }
     };
 
-    const handleAddUser = async (e) => {
-        e.preventDefault();
-
-        // Basic Validation
-        if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim()) {
-            return alert('Please fill in all fields');
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(newUser.email)) {
-            return alert('Please enter a valid email address');
-        }
-
-        if (newUser.password.length < 6) {
-            return alert('Password must be at least 6 characters');
-        }
+    const onSubmitAddUser = async (data) => {
         try {
             const config = { headers: { Authorization: `Bearer ${admin.token}` } };
-            await axios.post('http://localhost:5000/api/admin/users', newUser, config);
-            setNewUser({ name: '', email: '', password: '' });
+            await axios.post('http://localhost:5000/api/admin/users', data, config);
+            resetAddUserForm();
             setIsAdding(false);
             fetchUsers();
             alert('User added successfully');
@@ -139,33 +129,49 @@ function AdminDashboard() {
             {isAdding && (
                 <div className="card mb-20">
                     <h2>Add New User</h2>
-                    <form onSubmit={handleAddUser}>
+                    <form onSubmit={handleSubmit(onSubmitAddUser)}>
                         <div className="form-group">
                             <label>Name</label>
                             <input
                                 type="text"
-                                className="form-control"
-                                value={newUser.name}
-                                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                                className={errors.name ? 'form-control input-error' : 'form-control'}
+                                {...register('name', { required: 'Name is required' })}
                             />
+                            {errors.name && <p className='error-text'>{errors.name.message}</p>}
                         </div>
                         <div className="form-group">
                             <label>Email</label>
                             <input
                                 type="email"
-                                className="form-control"
-                                value={newUser.email}
-                                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                className={errors.email ? 'form-control input-error' : 'form-control'}
+                                {...register('email', {
+                                    required: 'Email is required',
+                                    pattern: {
+                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                        message: 'Invalid email address',
+                                    },
+                                })}
                             />
+                            {errors.email && <p className='error-text'>{errors.email.message}</p>}
                         </div>
                         <div className="form-group">
                             <label>Password</label>
                             <input
                                 type="password"
-                                className="form-control"
-                                value={newUser.password}
-                                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                                className={errors.password ? 'form-control input-error' : 'form-control'}
+                                {...register('password', {
+                                    required: 'Password is required',
+                                    minLength: {
+                                        value: 6,
+                                        message: 'Password must be at least 6 characters',
+                                    },
+                                    pattern: {
+                                        value: /^(?=.*[a-zA-Z])(?=.*\d).+$/,
+                                        message: 'Password must contain at least one letter and one number',
+                                    },
+                                })}
                             />
+                            {errors.password && <p className='error-text'>{errors.password.message}</p>}
                         </div>
                         <button type="submit" className="btn btn-block">Create User</button>
                     </form>
@@ -186,41 +192,47 @@ function AdminDashboard() {
                         {users.map((u, i) => (
                             <tr key={u._id}>
                                 <td>{i + 1}</td>
-                                <td>
-                                    {editingId === u._id ? (
-                                        <input
-                                            className="form-control"
-                                            value={editFormData.name}
-                                            onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                                        />
-                                    ) : (
-                                        u.name
-                                    )}
-                                </td>
-                                <td>
-                                    {editingId === u._id ? (
-                                        <input
-                                            className="form-control"
-                                            value={editFormData.email}
-                                            onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                                        />
-                                    ) : (
-                                        u.email
-                                    )}
-                                </td>
-                                <td>
-                                    {editingId === u._id ? (
-                                        <div className="btn-group">
-                                            <button className="btn btn-small" onClick={() => handleSaveEdit(u._id)}>Save</button>
-                                            <button className="btn btn-reverse btn-small" onClick={handleCancelEdit}>Cancel</button>
-                                        </div>
-                                    ) : (
-                                        <div className="btn-group">
-                                            <button className="btn btn-small" onClick={() => handleEdit(u)}>Edit</button>
-                                            <button className="btn btn-danger btn-small" onClick={() => handleDelete(u._id)}>Delete</button>
-                                        </div>
-                                    )}
-                                </td>
+                                {editingId === u._id ? (
+                                    <td colSpan="3">
+                                        <form onSubmit={handleEditSubmit(onSubmitEditUser)} style={{ display: 'flex', width: '100%', alignItems: 'flex-start', gap: '10px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <input
+                                                    className={editErrors.name ? 'form-control input-error' : 'form-control'}
+                                                    {...registerEdit('name', { required: 'Name is required' })}
+                                                />
+                                                {editErrors.name && <p className='error-text'>{editErrors.name.message}</p>}
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <input
+                                                    className={editErrors.email ? 'form-control input-error' : 'form-control'}
+                                                    {...registerEdit('email', {
+                                                        required: 'Email is required',
+                                                        pattern: {
+                                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                                            message: 'Invalid email',
+                                                        },
+                                                    })}
+                                                />
+                                                {editErrors.email && <p className='error-text'>{editErrors.email.message}</p>}
+                                            </div>
+                                            <div className="btn-group" style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                                                <button type="submit" className="btn btn-small">Save</button>
+                                                <button type="button" className="btn btn-reverse btn-small" onClick={handleCancelEdit}>Cancel</button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                ) : (
+                                    <>
+                                        <td>{u.name}</td>
+                                        <td>{u.email}</td>
+                                        <td>
+                                            <div className="btn-group">
+                                                <button type="button" className="btn btn-small" onClick={() => handleEdit(u)}>Edit</button>
+                                                <button type="button" className="btn btn-danger btn-small" onClick={() => handleDelete(u._id)}>Delete</button>
+                                            </div>
+                                        </td>
+                                    </>
+                                )}
                             </tr>
                         ))}
                     </tbody>
